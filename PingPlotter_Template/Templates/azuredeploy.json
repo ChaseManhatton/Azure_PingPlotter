@@ -1,7 +1,7 @@
 ﻿{
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
-	"parameters": {
+  "parameters": {
     "locations": {
       "type": "array",
       "defaultValue": [
@@ -34,29 +34,29 @@
       ]
 
     },
-		"VMPrefix": {
-			"type": "string",
-			"defaultValue": null,
-			"minLength": 2,
-			"metadata": {
-				"description": "VM Prefix for VMs (Example: WKTAAPING, would result in: WKTAAPING01 and 02)."
-			}
-		},
-		"VMAdminUserName": {
-			"type": "string",
-			"minLength": 1
-		},
-		"VMAdminPassword": {
-			"type": "securestring"
-		},
-		"VNETPrefix": {
-			"type": "string",
-			"minLength": 8,
-			"defaultValue": "10.0.0.0/16",
-			"metadata": {
-				"description": "Virtual Network Address Space."
-			}
-		},
+    "VMPrefix": {
+      "type": "string",
+      "defaultValue": null,
+      "minLength": 2,
+      "metadata": {
+        "description": "VM Prefix for VMs (Example: WKTAAPING, would result in: WKTAAPING01 and 02)."
+      }
+    },
+    "VMAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "VMAdminPassword": {
+      "type": "securestring"
+    },
+    "VNETPrefix": {
+      "type": "string",
+      "minLength": 8,
+      "defaultValue": "10.0.0.0/16",
+      "metadata": {
+        "description": "Virtual Network Address Space."
+      }
+    },
     "VNETSubnetPrefix": {
       "type": "string",
       "defaultValue": "10.0.0.0/24",
@@ -65,14 +65,14 @@
         "description": "VNET FE Subnet Range"
       }
     }
-	},
+  },
 	"variables": {
 		"VMNodeStorageName": "[concat(parameters('VMPrefix'))]",
 		"VMNodeNicName": "[concat(parameters('VMPrefix'), 'NIC')]",
 		"VMCount": 2,
 		"VNETSubnetName": "FE"
 	},
-	"resources": [
+  "resources": [
     {
       "name": "[concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0'))]",
       "type": "Microsoft.Storage/storageAccounts",
@@ -90,15 +90,15 @@
         "count": "[variables('VMCount')]"
       }
     },
-		{
-			"name": "[concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])]",
-			"type": "Microsoft.Network/virtualNetworks",
-			"location": "[parameters('locations')[copyIndex()]]",
-			"apiVersion": "2015-06-15",
-			"dependsOn": [ ],
-			"tags": {
-				"displayName": "Virtual Networks"
-			},
+    {
+      "name": "[concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[parameters('locations')[copyIndex()]]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "Virtual Networks"
+      },
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -118,7 +118,7 @@
         "name": "VNETCopy",
         "count": "[variables('VMCount')]"
       }
-		},
+    },
     {
       "name": "[concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0'))]",
       "type": "Microsoft.Network/networkInterfaces",
@@ -198,7 +198,7 @@
         "count": "[variables('VMCount')]"
       }
     }
-	],
+  ],
 	"outputs": {
 	}
 }
