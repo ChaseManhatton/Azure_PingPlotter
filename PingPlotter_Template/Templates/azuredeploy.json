@@ -82,7 +82,6 @@
   "variables": {
     "VMNodeStorageName": "[concat(parameters('VMPrefix'))]",
     "VMNodeNicName": "[concat(parameters('VMPrefix'), 'NIC')]",
-    "VMCount": 2,
     "VNETSubnetName": "FE"
   },
   "resources": [
@@ -100,7 +99,7 @@
       },
       "copy": {
         "name": "storageAccountCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     },
     {
@@ -145,7 +144,7 @@
       },
       "copy": {
         "name": "NSGCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     },
     {
@@ -179,7 +178,7 @@
       },
       "copy": {
         "name": "VNETCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     },
     {
@@ -208,7 +207,7 @@
       },
       "copy": {
         "name": "VMNicCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     },
     {
@@ -258,7 +257,7 @@
       },
       "copy": {
         "name": "VMCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     },
     {
@@ -287,7 +286,7 @@
       },
       "copy": {
         "name": "VMSMTPConfigCopy",
-        "count": "[variables('VMCount')]"
+        "count": "[length(parameters('locations'))]"
       }
     }
   ],
