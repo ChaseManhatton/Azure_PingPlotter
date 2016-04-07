@@ -1,204 +1,298 @@
 ﻿{
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
-  "parameters": {
-    "locations": {
-      "type": "array",
-      "defaultValue": [
-        "East US",
-        "West US"
-      ],
-      "metadata": {
-        "description": "Locations (Don't modify)"
-      }
-    },
-    "locations_value": {
-      "type": "array",
-      "defaultValue": [
-        "EAST",
-        "WEST"
-      ],
-      "metadata": {
-        "description": "Location values for identify resource location by name. (No need to modify)"
-      }
-    },
-    "VMSize": {
-      "type": "string",
-      "defaultValue": "Standard_A0",
-      "allowedValues": [
-        "Standard_A0",
-        "Standard_A1",
-        "Standard_A2",
-        "Standard_A3",
-        "Standard_A4"
-      ]
+	"parameters": {
+		"locations": {
+			"type": "array",
+			"defaultValue": [
+				"East US",
+				"West US"
+			],
+			"metadata": {
+				"description": "Locations (Don't modify)"
+			}
+		},
+		"locations_value": {
+			"type": "array",
+			"defaultValue": [
+				"EAST",
+				"WEST"
+			],
+			"metadata": {
+				"description": "Location values for identify resource location by name. (No need to modify)"
+			}
+		},
+		"VMSize": {
+			"type": "string",
+			"defaultValue": "Standard_A0",
+			"allowedValues": [
+				"Standard_A0",
+				"Standard_A1",
+				"Standard_A2",
+				"Standard_A3",
+				"Standard_A4"
+			]
 
-    },
-    "VMPrefix": {
-      "type": "string",
-      "defaultValue": null,
-      "minLength": 2,
-      "metadata": {
-        "description": "VM Prefix for VMs (Example: WKTAAPING, would result in: WKTAAPING01 and 02)."
-      }
-    },
-    "VMAdminUserName": {
-      "type": "string",
-      "minLength": 1
-    },
-    "VMAdminPassword": {
-      "type": "securestring"
-    },
-    "VNETPrefix": {
-      "type": "string",
-      "minLength": 8,
-      "defaultValue": "10.0.0.0/16",
+		},
+		"VMPrefix": {
+			"type": "string",
+			"defaultValue": null,
+			"minLength": 2,
+			"metadata": {
+				"description": "VM Prefix for VMs (Example: WKTAAPING, would result in: WKTAAPING01 and 02)."
+			}
+		},
+		"VMAdminUserName": {
+			"type": "string",
+			"minLength": 1
+		},
+		"VMAdminPassword": {
+			"type": "securestring"
+		},
+		"VNETPrefixes": {
+			"type": "array",
+      "defaultValue": [
+        "172.10.1.0/24",
+        "172.10.2.0/24"
+      ],
       "metadata": {
         "description": "Virtual Network Address Space."
       }
-    },
-    "VNETSubnetPrefix": {
-      "type": "string",
-      "defaultValue": "10.0.0.0/24",
+		},
+		"VNETSubnetPrefixes": {
+			"type": "array",
+      "defaultValue": [
+        "172.10.1.0/24",
+        "172.10.2.0/24"
+      ],
       "minLength": 8,
       "metadata": {
-        "description": "VNET FE Subnet Range"
+        "description": "VNET FE Subnet Ranges"
       }
-    }
-  },
+		},
+		"SMTPConfigPackageUrl": {
+			"type": "string",
+			"defaultValue": "https://github.com/ChaseManhatton/Azure_PingPlotter/raw/master/PingPlotter_Template/Tools/ConfigSMTP.ps1.zip",
+			"minLength": 10,
+			"metadata": {
+				"description": "Please enter absolute URL to ConfigSMTP package."
+			}
+		}
+	},
 	"variables": {
 		"VMNodeStorageName": "[concat(parameters('VMPrefix'))]",
 		"VMNodeNicName": "[concat(parameters('VMPrefix'), 'NIC')]",
 		"VMCount": 2,
 		"VNETSubnetName": "FE"
 	},
-  "resources": [
+	"resources": [
+		{
+			"name": "[concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0'))]",
+			"type": "Microsoft.Storage/storageAccounts",
+			"location": "[parameters('locations')[copyIndex()]]",
+			"apiVersion": "2015-06-15",
+			"dependsOn": [ ],
+			"tags": {
+				"displayName": "Storage Accounts"
+			},
+			"properties": {
+				"accountType": "Standard_LRS"
+			},
+			"copy": {
+				"name": "storageAccountCopy",
+				"count": "[variables('VMCount')]"
+			}
+		},
     {
-      "name": "[concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0'))]",
-      "type": "Microsoft.Storage/storageAccounts",
-      "location": "[parameters('locations')[copyIndex()]]",
       "apiVersion": "2015-06-15",
-      "dependsOn": [ ],
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[concat(parameters('VMPrefix'), 'NSGFE', padLeft(copyIndex(1), 2, '0'))]",
+      "location": "[resourceGroup().location]",
       "tags": {
-        "displayName": "Storage Accounts"
+        "displayName": "Virtual Networks/NSGs"
       },
       "properties": {
-        "accountType": "Standard_LRS"
-      },
-      "copy": {
-        "name": "storageAccountCopy",
-        "count": "[variables('VMCount')]"
-      }
-    },
-    {
-      "name": "[concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])]",
-      "type": "Microsoft.Network/virtualNetworks",
-      "location": "[parameters('locations')[copyIndex()]]",
-      "apiVersion": "2015-06-15",
-      "dependsOn": [ ],
-      "tags": {
-        "displayName": "Virtual Networks"
-      },
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": [
-            "[parameters('VNETPrefix')]"
-          ]
-        },
-        "subnets": [
+        "securityRules": [
           {
-            "name": "[variables('VNETSubnetName')]",
+            "name": "rdp-rule1",
             "properties": {
-              "addressPrefix": "[parameters('VNETSubnetPrefix')]"
+              "description": "Allow RDP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "148.9.24.0/24",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "rdp-rule2",
+            "properties": {
+              "description": "Allow RDP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "160.109.24.0/24",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 101,
+              "direction": "Inbound"
             }
           }
         ]
       },
       "copy": {
-        "name": "VNETCopy",
+        "name": "NSGCopy",
         "count": "[variables('VMCount')]"
       }
     },
-    {
-      "name": "[concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0'))]",
-      "type": "Microsoft.Network/networkInterfaces",
-      "location": "[parameters('locations')[copyIndex()]]",
-      "apiVersion": "2015-06-15",
+		{
+			"name": "[concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])]",
+			"type": "Microsoft.Network/virtualNetworks",
+			"location": "[parameters('locations')[copyIndex()]]",
+			"apiVersion": "2015-06-15",
       "dependsOn": [
-        "[concat('Microsoft.Network/virtualNetworks/', concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()]))]"
+        "[concat('Microsoft.Network/networkSecurityGroups/', concat(parameters('VMPrefix'), 'NSGFE', padLeft(copyIndex(1), 2, '0')))]"
       ],
-      "tags": {
-        "displayName": "Virtual Machine NICs"
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
+			"tags": {
+				"displayName": "Virtual Networks"
+			},
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[parameters('VNETPrefixes')[copyIndex()]]"
+					]
+				},
+				"subnets": [
+					{
+						"name": "[variables('VNETSubnetName')]",
             "properties": {
-              "privateIPAllocationMethod": "Dynamic",
-              "subnet": {
-                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])), '/subnets/', variables('VNETSubnetName'))]"
+              "addressPrefix": "[parameters('VNETSubnetPrefixes')[copyIndex()]]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(parameters('VMPrefix'), 'NSGFE', padLeft(copyIndex(1), 2, '0')))]"
               }
             }
-          }
-        ]
-      },
-      "copy": {
-        "name": "VMNicCopy",
-        "count": "[variables('VMCount')]"
-      }
-    },
-    {
-      "name": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'))]",
-      "type": "Microsoft.Compute/virtualMachines",
-      "location": "[parameters('locations')[copyIndex()]]",
-      "apiVersion": "2015-06-15",
-      "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0')))]",
-        "[concat('Microsoft.Network/networkInterfaces/', concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0')))]"
-      ],
-      "tags": {
-        "displayName": "Virtual Machines"
-      },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('VMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'))]",
-          "adminUsername": "[parameters('VMAdminUsername')]",
-          "adminPassword": "[parameters('VMAdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2012-R2-Datacenter",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'), '_OS')]",
-            "vhd": {
-              "uri": "[concat('http://', concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0')), '.blob.core.windows.net/vhds/', concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'), '_OS'), '.vhd')]"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          }
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0')))]"
-            }
-          ]
-        }
-      },
-      "copy": {
-        "name": "VMCopy",
-        "count": "[variables('VMCount')]"
-      }
-    }
-  ],
-	"outputs": {
-	}
+					}
+				]
+			},
+			"copy": {
+				"name": "VNETCopy",
+				"count": "[variables('VMCount')]"
+			}
+		},
+		{
+			"name": "[concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0'))]",
+			"type": "Microsoft.Network/networkInterfaces",
+			"location": "[parameters('locations')[copyIndex()]]",
+			"apiVersion": "2015-06-15",
+			"dependsOn": [
+				"[concat('Microsoft.Network/virtualNetworks/', concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()]))]"
+			],
+			"tags": {
+				"displayName": "Virtual Machine NICs"
+			},
+			"properties": {
+				"ipConfigurations": [
+					{
+						"name": "ipconfig1",
+						"properties": {
+							"privateIPAllocationMethod": "Dynamic",
+							"subnet": {
+								"id": "[concat(resourceId('Microsoft.Network/virtualNetworks', concat(parameters('VMPrefix'), 'VNET_', parameters('locations_value')[copyIndex()])), '/subnets/', variables('VNETSubnetName'))]"
+							}
+						}
+					}
+				]
+			},
+			"copy": {
+				"name": "VMNicCopy",
+				"count": "[variables('VMCount')]"
+			}
+		},
+		{
+			"name": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'))]",
+			"type": "Microsoft.Compute/virtualMachines",
+			"location": "[parameters('locations')[copyIndex()]]",
+			"apiVersion": "2015-06-15",
+			"dependsOn": [
+				"[concat('Microsoft.Storage/storageAccounts/', concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0')))]",
+				"[concat('Microsoft.Network/networkInterfaces/', concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0')))]"
+			],
+			"tags": {
+				"displayName": "Virtual Machines"
+			},
+			"properties": {
+				"hardwareProfile": {
+					"vmSize": "[parameters('VMSize')]"
+				},
+				"osProfile": {
+					"computerName": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'))]",
+					"adminUsername": "[parameters('VMAdminUsername')]",
+					"adminPassword": "[parameters('VMAdminPassword')]"
+				},
+				"storageProfile": {
+					"imageReference": {
+						"publisher": "MicrosoftWindowsServer",
+						"offer": "WindowsServer",
+						"sku": "2012-R2-Datacenter",
+						"version": "latest"
+					},
+					"osDisk": {
+						"name": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'), '_OS')]",
+						"vhd": {
+							"uri": "[concat('http://', concat(variables('VMNodeStorageName'), padLeft(copyIndex(1), 2, '0')), '.blob.core.windows.net/vhds/', concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'), '_OS'), '.vhd')]"
+						},
+						"caching": "ReadWrite",
+						"createOption": "FromImage"
+					}
+				},
+				"networkProfile": {
+					"networkInterfaces": [
+						{
+							"id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('VMNodeNicName'), padLeft(copyIndex(1), 2, '0')))]"
+						}
+					]
+				}
+			},
+			"copy": {
+				"name": "VMCopy",
+				"count": "[variables('VMCount')]"
+			}
+		},
+		{
+			"type": "Microsoft.Compute/virtualMachines/extensions",
+			"name": "[concat(concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0')),'/', 'ConfigSMTP')]",
+			"apiVersion": "2015-05-01-preview",
+			"location": "[parameters('locations')[copyIndex()]]",
+			"tags": {
+				"displayName": "Virtual Machines/ConfigSMTP"
+			},
+			"dependsOn": [
+				"[concat('Microsoft.Compute/virtualMachines/', concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0')))]"
+			],
+			"properties": {
+				"publisher": "Microsoft.Powershell",
+				"type": "DSC",
+				"typeHandlerVersion": "2.8",
+				"settings": {
+					"ModulesUrl": "[parameters('SMTPConfigPackageUrl')]",
+					"ConfigurationFunction": "ConfigSMTP.ps1\\SMTPConfig",
+					"Properties": {
+						"MachineName": "[concat(parameters('VMPrefix'), padLeft(copyIndex(1), 2, '0'))]"
+					}
+				},
+				"protectedSettings": null
+			},
+			"copy": {
+				"name": "VMSMTPConfigCopy",
+				"count": "[variables('VMCount')]"
+			}
+		},
+
+		"outputs"
+		:
+		{
+		}
 }

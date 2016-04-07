@@ -27,7 +27,6 @@
   <ItemGroup>
     <Folder Include="Scripts\" />
     <Folder Include="Templates\" />
-    <Folder Include="Tools\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Deployment.targets">
@@ -36,6 +35,8 @@
     <Content Include="Scripts\Deploy-AzureResourceGroup.ps1" />
     <Content Include="Templates\azuredeploy.json" />
     <Content Include="Templates\azuredeploy.parameters.json" />
+    <None Include="Tools\ConfigSMTP.ps1" />
+    <None Include="Tools\ConfigSMTP.ps1.zip" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Tools\AzCopy.exe" />
